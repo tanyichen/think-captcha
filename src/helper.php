@@ -9,10 +9,10 @@
 // | Author: yunwuxin <448901948@qq.com>
 // +----------------------------------------------------------------------
 
-Route::get('captcha/[:id]', "\\think\\captcha\\CaptchaController@index");
+Route::get('captcha/[:id]', "\\yichenthink\\captcha\\CaptchaController@index");
 
 Validate::extend('captcha', function ($value, $id = '') {
-    return captcha_check($value, $id);
+	return captcha_check($value, $id);
 });
 
 Validate::setTypeMsg('captcha', ':attribute错误!');
@@ -22,28 +22,25 @@ Validate::setTypeMsg('captcha', ':attribute错误!');
  * @param array  $config
  * @return \think\Response
  */
-function captcha($id = '', $config = [])
-{
-    $captcha = new \think\captcha\Captcha($config);
-    return $captcha->entry($id);
+function captcha($id = '', $config = []) {
+	$captcha = new \yichenthink\captcha\Captcha($config);
+	return $captcha->entry($id);
 }
 
 /**
  * @param $id
  * @return string
  */
-function captcha_src($id = '')
-{
-    return Url::build('/captcha' . ($id ? "/{$id}" : ''));
+function captcha_src($id = '') {
+	return Url::build('/captcha' . ($id ? "/{$id}" : ''));
 }
 
 /**
  * @param $id
  * @return mixed
  */
-function captcha_img($id = '')
-{
-    return '<img src="' . captcha_src($id) . '" alt="captcha" />';
+function captcha_img($id = '') {
+	return '<img src="' . captcha_src($id) . '" alt="captcha" />';
 }
 
 /**
@@ -52,8 +49,7 @@ function captcha_img($id = '')
  * @param array  $config
  * @return bool
  */
-function captcha_check($value, $id = '')
-{
-    $captcha = new \think\captcha\Captcha((array) Config::pull('captcha'));
-    return $captcha->check($value, $id);
+function captcha_check($value, $id = '') {
+	$captcha = new \yichenthink\captcha\Captcha((array) Config::pull('captcha'));
+	return $captcha->check($value, $id);
 }
