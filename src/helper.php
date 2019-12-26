@@ -23,6 +23,7 @@ Validate::setTypeMsg('captcha', ':attribute错误!');
  * @return \think\Response
  */
 function captcha($id = '', $config = []) {
+	// 默认缓存模式是session模式，配置$config['cacheId']=sessionId; 缓存id为真时候，验证规则将会切换到缓存模式， 验证时候也需要配置
 	$captcha = new \yichenthink\captcha\Captcha($config);
 	return $captcha->entry($id);
 }

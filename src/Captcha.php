@@ -11,14 +11,17 @@
 
 namespace yichenthink\captcha;
 
+use think\facade\Cache;
 use think\facade\Session;
 
 class Captcha {
 	protected $config = [
 		'outType' => 'image', //base64
+		'cacheId' => false, //是否使用缓存,默认使用sessionid。值存在即切换到缓存id
 		'seKey' => 'ThinkPHP.CN',
 		// 验证码加密密钥
 		'codeSet' => '2345678abcdefhijkmnpqrstuvwxyzABCDEFGHJKLMNPQRTUVWXY',
+		'code' => '',
 		// 验证码字符集合
 		'expire' => 1800,
 		// 验证码过期时间（s）
@@ -102,20 +105,45 @@ class Captcha {
 	 */
 	public function check($code, $id = '') {
 		$key = $this->authcode($this->seKey) . $id;
-		// 验证码不能为空
-		$secode = Session::get($key, '');
-		if (empty($code) || empty($secode)) {
-			return false;
-		}
-		// session 过期
-		if (time() - $secode['verify_time'] > $this->expire) {
-			Session::delete($key, '');
-			return false;
-		}
 
-		if ($this->authcode(strtoupper($code)) == $secode['verify_code']) {
-			$this->reset && Session::delete($key, '');
-			return true;
+		if ($this->cacheId && !empty($this->cacheId)) {
+			// 验证码不能为空
+			$secode = Cache::get($key, '');
+			if (empty($code) || empty($secode)) {
+				return false;
+			}
+			// session 过期
+			if (time() - $secode['verify_time'] > $this->expire || $secode['num'] > 3) {
+				Cache::rm($key, '');
+				return false;
+			}
+
+			if ($this->authcode(strtoupper($code)) == $secode['verify_code']) {
+				Cache::rm($key, '');
+				return true;
+			}
+			$secode['num'] = $secode['num'] + 1;
+
+			Cache::set($key . $id, $secode, 300);
+
+		} else {
+			// 验证码不能为空
+			$secode = Session::get($key, '');
+			if (empty($code) || empty($secode)) {
+				return false;
+			}
+			// session 过期
+			if (time() - $secode['verify_time'] > $this->expire || $secode['num'] > 3) {
+				Session::delete($key, '');
+				return false;
+			}
+
+			if ($this->authcode(strtoupper($code)) == $secode['verify_code']) {
+				Session::delete($key, '');
+				return true;
+			}
+			$secode['num'] = $secode['num'] + 1;
+			Session::set($key . $id, $secode, '');
 		}
 
 		return false;
@@ -188,11 +216,19 @@ class Captcha {
 
 		// 保存验证码
 		$key = $this->authcode($this->seKey);
-		$code = $this->authcode(strtoupper(implode('', $code)));
+
+		$authcode = $this->authcode(strtoupper(implode('', $code)));
 		$secode = [];
-		$secode['verify_code'] = $code; // 把校验码保存到session
+		$secode['verify_code'] = $authcode; // 把校验码保存到session
 		$secode['verify_time'] = time(); // 验证码创建时间
-		Session::set($key . $id, $secode, '');
+		$secode['num'] = 1; //验证次数
+		$secode['code'] = $code; //
+		// $this->secode = array_merge($secode);
+		if ($this->cacheId && !empty($this->cacheId)) {
+			Cache::set($key . $id, $secode, 300);
+		} else {
+			Session::set($key . $id, $secode, '');
+		}
 
 		ob_start();
 		// 输出图像
